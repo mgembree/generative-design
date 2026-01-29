@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Room Graph Generator</title>
+	<style>
+		#outputs { display: flex; flex-wrap: wrap; gap: 12px; }
+		.layout { width: 320px; white-space: pre; background: #f8f8f8; padding: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+		@media (max-width: 700px) { .layout { width: 100%; } }
+	</style>
+</head>
+<body>
+	<h1>Room  Generator</h1>
+	<button id="generate">Generate Layout</button>
+	<div id="outputs"></div>
+
+	<script>
+		const outputs = document.getElementById('outputs');
+		const button = document.getElementById('generate');
+
+		function randInt(min, max) {
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+
+		function generateGraph() {
+			const nodeCount = randInt(4, 12);
+			const nodes = Array.from({ length: nodeCount }, (_, i) => ({
+				id: i,
+				label: i === 0 ? 'START' : i === nodeCount - 1 ? 'GOAL' : `R${i}`
+			}));
+
+			const edges = new Set(); // undirected "a-b" (a<b)
+
+			for (let i = 0; i < nodeCount - 1; i++) edges.add(`${i}-${i + 1}`);
+
+			// degrees from backbone
+			const degree = new Array(nodeCount).fill(0);
+			for (const e of edges) {
+				const [a, b] = e.split('-').map(Number);
+				degree[a]++; degree[b]++;
+			}
+
+			let extra = randInt(0, 3), added = 0, tries = 0;
+			while (added < extra && tries < 1000) {
+				tries++;
+				const a = randInt(0, nodeCount - 2);
+				const b = randInt(0, nodeCount - 2);
+				if (a === b) continue;
+				const x = Math.min(a, b), y = Math.max(a, b);
+				if (edges.has(`${x}-${y}`)) continue;
+				if (degree[x] >= 4 || degree[y] >= 4) continue;
+				edges.add(`${x}-${y}`);
+				degree[x]++; degree[y]++;
+				added++;
+			}
+
+			const adjacency = new Map();
+			for (const n of nodes) adjacency.set(n.id, new Set());
+			for (const e of edges) {
+				const [a, b] = e.split('-').map(Number);
+				adjacency.get(a).add(b);
+				adjacency.get(b).add(a);
+			}
+
+			return { nodes, adjacency };
+		}
+
+		function renderAdjacency({ nodes, adjacency }) {
+			const lines = ['Adjacency List:'];
+			for (const node of nodes) {
+				const neighbors = [...adjacency.get(node.id)]
+					.map(id => nodes[id].label)
+					.sort();
+				lines.push(`${node.label}: ${neighbors.join(', ')}`);
+			}
+			return lines.join('\n');
+		}
+
+		function generateAndRender(count = 5) {
+			outputs.innerHTML = '';
+			for (let i = 0; i < count; i++) {
+				const graph = generateGraph();
+				const adj = renderAdjacency(graph);
+				const pre = document.createElement('pre');
+				pre.className = 'layout';
+				pre.innerText = `Layout ${i + 1}:\n${adj}`;
+				outputs.appendChild(pre);
+			}
+		}
+
+		button.addEventListener('click', () => generateAndRender(5));
+		generateAndRender(5);
+	</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Room Graph Generator</title>
+</head>
+<body>
+	<h1>Dungeon Ecosystem Generator</h1>
+	<button id="generate">Generate Ecosystem</button>
+	<pre id="output"></pre>
+
+	<script>
+		const output = document.getElementById('output');
+		const button = document.getElementById('generate');
+
+		function randInt(min, max) {
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+
+		async function loadEcosystem() {
+			const res = await fetch('ecosystem.json');
+			if (!res.ok) throw new Error('Failed to load ecosystem.json');
+			return res.json();
+		}
+
+		function pick(arr) {
+			return arr[randInt(0, arr.length - 1)];
+		}
+
+		function generateGraph(roomCount) {
+			const nodes = [];
+			const edges = new Set();
+
+			nodes.push({ id: 0, label: 'START' });
+			for (let i = 1; i < roomCount - 1; i++) {
+				nodes.push({ id: i, label: `R${i}` });
+			}
+			nodes.push({ id: roomCount - 1, label: 'GOAL' });
+
+			for (let i = 0; i < nodes.length - 1; i++) {
+				edges.add(`${i}-${i + 1}`);
+				edges.add(`${i + 1}-${i}`);
+			}
+
+			const extraEdges = randInt(2, Math.max(3, roomCount));
+			const startId = 0;
+			const goalId = roomCount - 1;
+			for (let i = 0; i < extraEdges; i++) {
+				let a = randInt(0, roomCount - 1);
+				let b = randInt(0, roomCount - 1);
+				let tries = 0;
+				while (
+					(a === b || (a === startId && b === goalId) || (a === goalId && b === startId))
+					&& tries < 10
+				) {
+					a = randInt(0, roomCount - 1);
+					b = randInt(0, roomCount - 1);
+					tries++;
+				}
+				if (a === b) b = (b + 1) % roomCount;
+				if ((a === startId && b === goalId) || (a === goalId && b === startId)) {
+					continue;
+				}
+				edges.add(`${a}-${b}`);
+				edges.add(`${b}-${a}`);
+			}
+
+			const adjacency = new Map();
+			for (const node of nodes) adjacency.set(node.id, new Set());
+			for (const e of edges) {
+				const [a, b] = e.split('-').map(Number);
+				adjacency.get(a).add(b);
+			}
+
+			return { nodes, adjacency };
+		}
+
+		function assignRooms(graph, ecosystem) {
+			const biomeNames = ecosystem.biomes.map(b => b.name);
+			const creatures = ecosystem.creatures;
+			const biome = pick(biomeNames);
+			const options = creatures.filter(c =>
+				c.biomes.includes(biome) && c.population_range[1] > 0
+			);
+
+			const rooms = graph.nodes.map(node => {
+				const count = Math.min(3, options.length);
+				const selectedCount = count > 0 ? randInt(1, count) : 0;
+				const selected = [];
+				const pool = [...options];
+				for (let i = 0; i < selectedCount; i++) {
+					const idx = randInt(0, pool.length - 1);
+					selected.push(pool.splice(idx, 1)[0]);
+				}
+				const occupants = selected
+					.map(c => {
+						const minPop = Math.max(1, c.population_range[0]);
+						const pop = randInt(minPop, c.population_range[1]);
+						return `${c.name} x${pop}`;
+					})
+					.filter(Boolean);
+				return { ...node, biome, occupants };
+			});
+
+			return { biome, rooms };
+		}
+
+		function renderRooms(graph, biome, rooms) {
+			const lines = ['Rooms and Connections:', `Biome: ${biome}`];
+			for (const room of rooms) {
+				const neighbors = [...graph.adjacency.get(room.id)]
+					.map(id => rooms[id].label)
+					.sort();
+				lines.push('');
+				lines.push(`${room.label}`);
+				lines.push(`  Creatures: ${room.occupants.join(', ') || 'None'}`);
+				lines.push(`  Adjacent: ${neighbors.join(', ')}`);
+			}
+			return lines.join('\n');
+		}
+
+		async function generateAndRender() {
+			try {
+				const ecosystem = await loadEcosystem();
+				const roomCount = randInt(8, 14);
+				const graph = generateGraph(roomCount);
+				const { biome, rooms } = assignRooms(graph, ecosystem);
+				output.textContent = renderRooms(graph, biome, rooms);
+			} catch (err) {
+				output.textContent = `Error: ${err.message}`;
+			}
+		}
+
+		button.addEventListener('click', generateAndRender);
+		generateAndRender();
+	</script>
+</body>
+</html>

@@ -1,0 +1,307 @@
+{
+  "creatures": [
+    {
+      "name": "Deer",
+      "biomes": ["forest", "grassland", "ruins"],
+      "cr": 0.5,
+      "role": "herbivore",
+      "population_range": [2, 5]
+    },
+    {
+      "name": "Giant Beetle",
+      "biomes": ["forest", "ruins", "fungal"],
+      "cr": 0.25,
+      "role": "herbivore",
+      "population_range": [1, 3]
+    },
+    {
+      "name": "Grazing Worm",
+      "biomes": ["fungal", "underground", "ruins"],
+      "cr": 0.125,
+      "role": "herbivore",
+      "population_range": [3, 8]
+    },
+    {
+      "name": "Root Grub",
+      "biomes": ["forest", "underground", "fungal"],
+      "cr": 0.125,
+      "role": "herbivore",
+      "population_range": [4, 12]
+    },
+    {
+      "name": "Lichen Feeder",
+      "biomes": ["frozen", "underground", "volcanic"],
+      "cr": 0.125,
+      "role": "herbivore",
+      "population_range": [2, 6]
+    },
+    {
+      "name": "Scrap Crab",
+      "biomes": ["flooded", "underground", "ruins"],
+      "cr": 1,
+      "role": "omnivore",
+      "population_range": [3, 8]
+    },
+    {
+      "name": "Cave Spider",
+      "biomes": ["underground", "caves", "fungal", "forest"],
+      "cr": 0.25,
+      "role": "carnivore",
+      "population_range": [2, 6]
+    },
+    {
+      "name": "Spore Toad",
+      "biomes": ["fungal", "underground", "flooded", "swamp"],
+      "cr": 0.5,
+      "role": "omnivore",
+      "population_range": [2, 6]
+    },
+    {
+      "name": "Fungi Slug",
+      "biomes": ["fungal", "underground", "forest", "swamp"],
+      "cr": 1,
+      "role": "herbivore",
+      "population_range": [1, 4]
+    },
+    {
+      "name": "Thornback Bear",
+      "biomes": ["forest", "ruins", "grassland"],
+      "cr": 3,
+      "role": "carnivore",
+      "population_range": [1, 2]
+    },
+    {
+      "name": "Forest Spirit",
+      "biomes": ["forest", "ruins"],
+      "cr": 2,
+      "role": "carnivore",
+      "population_range": [0, 1]
+    },
+    {
+      "name": "Magma Lizard",
+      "biomes": ["volcanic"],
+      "cr": 2,
+      "role": "carnivore",
+      "population_range": [1, 3]
+    },
+    {
+      "name": "Shroom Weaver",
+      "biomes": ["fungal", "underground"],
+      "cr": 2,
+      "role": "carnivore",
+      "population_range": [1, 3]
+    },
+    {
+      "name": "Frost Worm",
+      "biomes": ["frozen"],
+      "cr": 2,
+      "role": "carnivore",
+      "population_range": [1, 2]
+    },
+    {
+      "name": "Drowned Knight",
+      "biomes": ["flooded", "ruins"],
+      "cr": 4,
+      "role": "carnivore",
+      "population_range": [1, 1]
+    },
+    {
+      "name": "Giant Scorpion",
+      "biomes": ["volcanic", "underground", "grassland"],
+      "cr": 1.5,
+      "role": "carnivore",
+      "population_range": [2, 4]
+    },
+    {
+      "name": "Crystal Beetle",
+      "biomes": ["underground", "volcanic", "frozen"],
+      "cr": 0.5,
+      "role": "herbivore",
+      "population_range": [3, 7]
+    },
+    {
+      "name": "Swamp Slug",
+      "biomes": ["swamp", "flooded", "underground"],
+      "cr": 0.75,
+      "role": "omnivore",
+      "population_range": [2, 5]
+    },
+    {
+      "name": "Glowworm Colony",
+      "biomes": ["underground", "fungal", "caves"],
+      "cr": 0.125,
+      "role": "herbivore",
+      "population_range": [5, 15]
+    },
+    {
+      "name": "Stone Salamander",
+      "biomes": ["volcanic", "underground"],
+      "cr": 1,
+      "role": "carnivore",
+      "population_range": [2, 5]
+    },
+    {
+      "name": "Ice Bat",
+      "biomes": ["frozen", "underground", "caves"],
+      "cr": 0.25,
+      "role": "carnivore",
+      "population_range": [3, 8]
+    },
+    {
+      "name": "Vine Creeper",
+      "biomes": ["forest", "ruins", "swamp"],
+      "cr": 1,
+      "role": "omnivore",
+      "population_range": [2, 4]
+    },
+    {
+      "name": "Rotting Corpse Spider",
+      "biomes": ["underground", "fungal", "ruins"],
+      "cr": 0.5,
+      "role": "carnivore",
+      "population_range": [3, 9]
+    },
+    {
+      "name": "Bioluminescent Jellyfish",
+      "biomes": ["flooded", "underground"],
+      "cr": 0.5,
+      "role": "carnivore",
+      "population_range": [3, 10]
+    },
+    {
+      "name": "Moss Golem",
+      "biomes": ["forest", "swamp", "ruins"],
+      "cr": 1.5,
+      "role": "herbivore",
+      "population_range": [1, 3]
+    },
+    {
+      "name": "Ash Crawler",
+      "biomes": ["volcanic", "ruins"],
+      "cr": 1,
+      "role": "omnivore",
+      "population_range": [4, 10]
+    },
+    {
+      "name": "Burrowing Mole",
+      "biomes": ["underground", "forest", "grassland"],
+      "cr": 0.125,
+      "role": "herbivore",
+      "population_range": [3, 8]
+    },
+    {
+      "name": "Crimson Wasp Swarm",
+      "biomes": ["forest", "grassland", "ruins"],
+      "cr": 1.5,
+      "role": "carnivore",
+      "population_range": [2, 5]
+    },
+    {
+      "name": "Deep Sea Leech",
+      "biomes": ["flooded", "underground"],
+      "cr": 0.75,
+      "role": "carnivore",
+      "population_range": [5, 15]
+    },
+    {
+      "name": "Ethereal Wisp",
+      "biomes": ["ruins", "fungal", "underground"],
+      "cr": 0.5,
+      "role": "carnivore",
+      "population_range": [1, 3]
+    }
+  ],
+
+  "biomes": [
+    {
+      "name": "forest",
+      "description": "Dense woodland with thick canopy, trees, moss-covered ground",
+      "light_level": "medium",
+      "water_level": "low",
+      "temperature": "moderate",
+      "primary_resources": ["berries", "acorns", "mushrooms", "wood"],
+      "zone_types": ["open_grove", "dense_thicket", "ancient_ruins", "clear"]
+    },
+    {
+      "name": "grassland",
+      "description": "Open plains with sparse vegetation, rolling hills",
+      "light_level": "high",
+      "water_level": "low",
+      "temperature": "warm",
+      "primary_resources": ["grass", "wildflowers", "insects"],
+      "zone_types": ["open_field", "scattered_rocks", "water_hole"]
+    },
+    {
+      "name": "underground",
+      "description": "Caverns and tunnels beneath the surface, darkness and stone",
+      "light_level": "very_low",
+      "water_level": "medium",
+      "temperature": "cool",
+      "primary_resources": ["crystals", "fungi", "water", "bones"],
+      "zone_types": ["cavern", "tunnel", "chamber", "deep_chasm"]
+    },
+    {
+      "name": "fungal",
+      "description": "Bioluminescent fungi gardens, spore-laden air, organic decay",
+      "light_level": "medium",
+      "water_level": "high",
+      "temperature": "moderate",
+      "primary_resources": ["fungi", "spores", "decaying_matter"],
+      "zone_types": ["fungi_garden", "mycelium_network", "spore_chamber"]
+    },
+    {
+      "name": "flooded",
+      "description": "Water-filled chambers, submerged ruins, aquatic ecosystem",
+      "light_level": "low",
+      "water_level": "very_high",
+      "temperature": "cool",
+      "primary_resources": ["algae", "fish", "water_plants", "submerged_ruins"],
+      "zone_types": ["deep_water", "shallow_pool", "flooded_corridor", "drowned_chamber"]
+    },
+    {
+      "name": "volcanic",
+      "description": "Lava flows, heat vents, ash-covered ground, molten dangers",
+      "light_level": "medium",
+      "water_level": "none",
+      "temperature": "very_hot",
+      "primary_resources": ["lava_rock", "minerals", "ash", "heat_vents"],
+      "zone_types": ["lava_chamber", "ash_plains", "vent_area", "cooled_lava"]
+    },
+    {
+      "name": "frozen",
+      "description": "Ice caves, frost-covered surfaces, permanent cold, glacial features",
+      "light_level": "high",
+      "water_level": "none",
+      "temperature": "very_cold",
+      "primary_resources": ["ice", "lichen", "frost_crystals"],
+      "zone_types": ["ice_chamber", "frozen_lake", "glacier_passage", "icicle_cavern"]
+    },
+    {
+      "name": "ruins",
+      "description": "Collapsed buildings and structures, overgrown with nature or decay",
+      "light_level": "medium",
+      "water_level": "low",
+      "temperature": "cool",
+      "primary_resources": ["stone", "metal", "artifacts", "vegetation"],
+      "zone_types": ["collapsed_hall", "sealed_chamber", "crumbled_wall", "courtyard"]
+    },
+    {
+      "name": "swamp",
+      "description": "Murky water and mud, tangled vegetation, decomposing matter",
+      "light_level": "low",
+      "water_level": "very_high",
+      "temperature": "warm",
+      "primary_resources": ["water_plants", "mud", "decaying_matter", "insects"],
+      "zone_types": ["murky_pool", "mud_flat", "tangled_growth", "dead_trees"]
+    },
+    {
+      "name": "caves",
+      "description": "Natural cave systems with stalactites, underground streams, darkness",
+      "light_level": "very_low",
+      "water_level": "medium",
+      "temperature": "cool",
+      "primary_resources": ["water", "minerals", "guano", "fungi"],
+      "zone_types": ["stalactite_chamber", "underground_stream", "cave_system", "bat_roost"]
+    }
+  ]
+}

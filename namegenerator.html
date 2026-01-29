@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faction Name Generator</title>
+</head>
+<body>
+    <h1>Faction Name Generator</h1>
+    
+    <div>
+        <strong>Single Tone Mode:</strong>
+        <label>
+            Tone:
+            <select id="tone">
+                <option value="mystical">Mystical</option>
+                <option value="gritty">Gritty</option>
+                <option value="prideful">Prideful</option>
+            </select>
+        </label>
+        <label>
+            <input type="checkbox" id="blendMode"> Enable Tone Blending
+        </label>
+    </div>
+    
+    <div id="blendControls" style="display:none; margin-top:10px;">
+        <strong>Blend Mode:</strong>
+        <div>
+            <label>Mystical: <input type="number" id="mysticalWeight" value="33" min="0" max="100">%</label>
+        </div>
+        <div>
+            <label>Gritty: <input type="number" id="grittyWeight" value="33" min="0" max="100">%</label>
+        </div>
+        <div>
+            <label>Prideful: <input type="number" id="pridefulWeight" value="34" min="0" max="100">%</label>
+        </div>
+    </div>
+    
+    <br><label>
+        Count:
+        <input type="number" id="count" value="1" min="1" max="50">
+    </label>
+    
+    <button onclick="generate()">Generate Names</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        const grammar = {
+            mystical: {
+                prefix: ['Celestial', 'Arcane', 'Ethereal', 'Divine', 'Astral', 'Mystic', 'Sacred', 'Ancient', 'Eternal', 'Radiant', 'Eldritch', 'Luminous', 'Twilight', 'Cosmic', 'Spectral', 'Hallowed', 'Prophetic', 'Enigmatic', 'Transcendent', 'Otherworldly'],
+                middle: ['Order', 'Circle', 'Covenant', 'Brotherhood', 'Sisterhood', 'Council', 'Guild', 'Temple', 'Sanctum', 'Assembly', 'Enclave', 'Monastery', 'Coven', 'Sect', 'Shrine', 'Conclave', 'Congregation', 'Fellowship', 'Society', 'Lodge'],
+                suffix: ['of the Moon', 'of Stars', 'of Light', 'of Shadows', 'of Dreams', 'of the Void', 'of Eternity', 'of the Cosmos', 'of Destiny', 'of the Oracle', 'of the Ancients', 'of the Veil', 'of Infinity', 'of the Abyss', 'of Revelation', 'of the Phoenix', 'of the Serpent', 'of the Crystal', 'of the Rune', 'of the Sphere']
+            },
+            gritty: {
+                prefix: ['Iron', 'Blood', 'Steel', 'Broken', 'Rust', 'Ash', 'Bone', 'War', 'Dead', 'Scarred', 'Burnt', 'Grim', 'Savage', 'Vicious', 'Twisted', 'Razor', 'Plague', 'Rabid', 'Feral', 'Cursed'],
+                middle: ['Fist', 'Blade', 'Legion', 'Company', 'Brigade', 'Crew', 'Gang', 'Pack', 'Band', 'Horde', 'Mob', 'Wolves', 'Dogs', 'Skulls', 'Reapers', 'Marauders', 'Outlaws', 'Cutthroats', 'Scavengers', 'Raiders'],
+                suffix: ['of the Wastes', 'of the Gutter', 'of No Mercy', 'of the Chain', 'of Vengeance', 'of the Streets', 'of Ruin', 'of the Pit', 'of Hell', 'of the Damned', 'of the Gallows', 'of the Grave', 'of Despair', 'of the Scar', 'of Crimson', 'of the Noose', 'of Wrath', 'of the Sewer', 'of the Slums', 'of Filth']
+            },
+            prideful: {
+                prefix: ['Glorious', 'Noble', 'Grand', 'Exalted', 'Supreme', 'Mighty', 'Magnificent', 'Imperial', 'Royal', 'Sovereign', 'Illustrious', 'Majestic', 'Resplendent', 'Victorious', 'Triumphant', 'Legendary', 'Renowned', 'Honored', 'Prestigious', 'Distinguished'],
+                middle: ['Empire', 'Kingdom', 'Dynasty', 'Dominion', 'Throne', 'Crown', 'Banner', 'House', 'Court', 'Realm', 'Vanguard', 'Elite', 'Champions', 'Paragons', 'Exemplars', 'Masters', 'Heralds', 'Sentinels', 'Wardens', 'Guardians'],
+                suffix: ['of Excellence', 'of Victory', 'of Glory', 'of Honor', 'of Triumph', 'of Power', 'of the Sun', 'of Gold', 'of the Lion', 'of the Eagle', 'of Supremacy', 'of Magnificence', 'of the Apex', 'of Ascendance', 'of the Heights', 'of Valor', 'of Renown', 'of the Conquering', 'of Splendor', 'of Greatness']
+            }
+        };
+        
+        function random(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+        
+        function weightedRandom(options) {
+            const total = options.reduce((sum, opt) => sum + opt.weight, 0);
+            let rand = Math.random() * total;
+            
+            for (let opt of options) {
+                if (rand < opt.weight) {
+                    return opt.value;
+                }
+                rand -= opt.weight;
+            }
+            return options[options.length - 1].value;
+        }
+        
+        document.getElementById('blendMode').addEventListener('change', function() {
+            const blendControls = document.getElementById('blendControls');
+            const singleTone = document.getElementById('tone');
+            if (this.checked) {
+                blendControls.style.display = 'block';
+                singleTone.disabled = true;
+            } else {
+                blendControls.style.display = 'none';
+                singleTone.disabled = false;
+            }
+        });
+        
+        function generate() {
+            const count = parseInt(document.getElementById('count').value);
+            const blendMode = document.getElementById('blendMode').checked;
+            
+            const names = [];
+            for (let i = 0; i < count; i++) {
+                let name;
+                
+                if (blendMode) {
+                    const weights = {
+                        mystical: parseInt(document.getElementById('mysticalWeight').value),
+                        gritty: parseInt(document.getElementById('grittyWeight').value),
+                        prideful: parseInt(document.getElementById('pridefulWeight').value)
+                    };
+                    
+                    const prefixTone = weightedRandom([
+                        {value: 'mystical', weight: weights.mystical},
+                        {value: 'gritty', weight: weights.gritty},
+                        {value: 'prideful', weight: weights.prideful}
+                    ]);
+                    const middleTone = weightedRandom([
+                        {value: 'mystical', weight: weights.mystical},
+                        {value: 'gritty', weight: weights.gritty},
+                        {value: 'prideful', weight: weights.prideful}
+                    ]);
+                    const suffixTone = weightedRandom([
+                        {value: 'mystical', weight: weights.mystical},
+                        {value: 'gritty', weight: weights.gritty},
+                        {value: 'prideful', weight: weights.prideful}
+                    ]);
+                    
+                    const prefix = random(grammar[prefixTone].prefix);
+                    const middle = random(grammar[middleTone].middle);
+                    const suffix = random(grammar[suffixTone].suffix);
+                    
+                    const structures = [
+                        () => `The ${prefix} ${middle}`,
+                        () => `${prefix} ${middle} ${suffix}`,
+                        () => `The ${middle} ${suffix}`,
+                        () => `${prefix} ${suffix}`
+                    ];
+                    
+                    name = random(structures)();
+                } else {
+                    const tone = document.getElementById('tone').value;
+                    const g = grammar[tone];
+                    
+                    const structures = [
+                        () => `The ${random(g.prefix)} ${random(g.middle)}`,
+                        () => `${random(g.prefix)} ${random(g.middle)} ${random(g.suffix)}`,
+                        () => `The ${random(g.middle)} ${random(g.suffix)}`,
+                        () => `${random(g.prefix)} ${random(g.suffix)}`
+                    ];
+                    
+                    name = random(structures)();
+                }
+                
+                names.push(name);
+            }
+            
+            document.getElementById('output').innerHTML = names.map(n => `<p>${n}</p>`).join('');
+        }
+        // Initial generation
+        generate();
+    </script>
+</body>
+</html>
