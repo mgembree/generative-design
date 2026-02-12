@@ -4,14 +4,25 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title>Room Graph Generator</title>
+	<style>
+		#outputs { display: flex; flex-wrap: wrap; gap: 12px; }
+		.layout { width: 320px; white-space: pre; background: #f8f8f8; padding: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+		@media (max-width: 700px) { .layout { width: 100%; } }
+	</style>
 </head>
 <body>
 	<h1>Dungeon Ecosystem Generator</h1>
-	<button id="generate">Generate Ecosystem</button>
-	<pre id="output"></pre>
+	<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+		<button id="generate">Generate Ecosystem</button>
+		<label for="room-min">Rooms Min:</label>
+		<input id="room-min" type="number" min="2" max="50" placeholder="min" style="width:80px" />
+		<label for="room-max">Rooms Max:</label>
+		<input id="room-max" type="number" min="2" max="50" placeholder="max" style="width:80px" />
+	</div>
+	<div id="outputs"></div>
 
 	<script>
-		const output = document.getElementById('output');
+		const outputs = document.getElementById('outputs');
 		const button = document.getElementById('generate');
 
 		function randInt(min, max) {
@@ -29,48 +40,48 @@
 		}
 
 		function generateGraph(roomCount) {
-			const nodes = [];
-			const edges = new Set();
+			const nodeCount = roomCount;
+			const nodes = Array.from({ length: nodeCount }, (_, i) => ({
+				id: i,
+				label: i === 0 ? 'START' : i === nodeCount - 1 ? 'GOAL' : `R${i}`
+			}));
 
-			nodes.push({ id: 0, label: 'START' });
-			for (let i = 1; i < roomCount - 1; i++) {
-				nodes.push({ id: i, label: `R${i}` });
+			const edges = new Set(); // store undirected edges as "a-b" where a < b
+
+			// backbone path
+			for (let i = 0; i < nodeCount - 1; i++) edges.add(`${i}-${i + 1}`);
+
+			// compute degrees from backbone
+			const degree = new Array(nodeCount).fill(0);
+			for (const e of edges) {
+				const [a, b] = e.split('-').map(Number);
+				degree[a]++; degree[b]++;
 			}
-			nodes.push({ id: roomCount - 1, label: 'GOAL' });
 
-			for (let i = 0; i < nodes.length - 1; i++) {
-				edges.add(`${i}-${i + 1}`);
-				edges.add(`${i + 1}-${i}`);
-			}
-
-			const extraEdges = randInt(2, Math.max(3, roomCount));
-			const startId = 0;
-			const goalId = roomCount - 1;
-			for (let i = 0; i < extraEdges; i++) {
-				let a = randInt(0, roomCount - 1);
-				let b = randInt(0, roomCount - 1);
-				let tries = 0;
-				while (
-					(a === b || (a === startId && b === goalId) || (a === goalId && b === startId))
-					&& tries < 10
-				) {
-					a = randInt(0, roomCount - 1);
-					b = randInt(0, roomCount - 1);
-					tries++;
-				}
-				if (a === b) b = (b + 1) % roomCount;
-				if ((a === startId && b === goalId) || (a === goalId && b === startId)) {
-					continue;
-				}
-				edges.add(`${a}-${b}`);
-				edges.add(`${b}-${a}`);
+			// add up to 3 extra edges, but never touch GOAL (nodeCount-1)
+			let extra = randInt(0, 3), added = 0, tries = 0;
+			while (added < extra && tries < 1000) {
+				tries++;
+				const a = randInt(0, nodeCount - 2);
+				const b = randInt(0, nodeCount - 2);
+				if (a === b) continue;
+				const x = Math.min(a, b), y = Math.max(a, b);
+				if (edges.has(`${x}-${y}`)) continue;
+				// enforce max 3 edges per node
+				if (degree[x] >= 3 || degree[y] >= 3) continue;
+				// prevent direct START-GOAL connection (defensive)
+				if ((x === 0 && y === nodeCount - 1) || (x === nodeCount - 1 && y === 0)) continue;
+				edges.add(`${x}-${y}`);
+				degree[x]++; degree[y]++;
+				added++;
 			}
 
 			const adjacency = new Map();
-			for (const node of nodes) adjacency.set(node.id, new Set());
+			for (const n of nodes) adjacency.set(n.id, new Set());
 			for (const e of edges) {
 				const [a, b] = e.split('-').map(Number);
 				adjacency.get(a).add(b);
+				adjacency.get(b).add(a);
 			}
 
 			return { nodes, adjacency };
@@ -120,20 +131,40 @@
 			return lines.join('\n');
 		}
 
-		async function generateAndRender() {
+		async function generateAndRender(count = 5) {
+			outputs.innerHTML = '';
 			try {
 				const ecosystem = await loadEcosystem();
-				const roomCount = randInt(8, 14);
-				const graph = generateGraph(roomCount);
-				const { biome, rooms } = assignRooms(graph, ecosystem);
-				output.textContent = renderRooms(graph, biome, rooms);
+				for (let i = 0; i < count; i++) {
+					const minVal = parseInt(document.getElementById('room-min').value, 10);
+					const maxVal = parseInt(document.getElementById('room-max').value, 10);
+					let roomCount;
+					if (Number.isFinite(minVal) && Number.isFinite(maxVal)) {
+						let min = Math.max(2, Math.floor(minVal));
+						let max = Math.max(2, Math.floor(maxVal));
+						if (min > max) { const t = min; min = max; max = t; }
+						roomCount = randInt(min, max);
+					} else {
+						roomCount = randInt(8, 14);
+					}
+					const graph = generateGraph(roomCount);
+					const { biome, rooms } = assignRooms(graph, ecosystem);
+					const text = `Layout ${i + 1}:\n${renderRooms(graph, biome, rooms)}`;
+					const pre = document.createElement('pre');
+					pre.className = 'layout';
+					pre.innerText = text;
+					outputs.appendChild(pre);
+				}
 			} catch (err) {
-				output.textContent = `Error: ${err.message}`;
+				const pre = document.createElement('pre');
+				pre.className = 'layout';
+				pre.innerText = `Error: ${err.message}`;
+				outputs.appendChild(pre);
 			}
 		}
 
-		button.addEventListener('click', generateAndRender);
-		generateAndRender();
+		button.addEventListener('click', () => generateAndRender(5));
+		generateAndRender(5);
 	</script>
 </body>
 </html>
