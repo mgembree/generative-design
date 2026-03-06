@@ -1,0 +1,3 @@
+3–5 sentences on what made puzzles feel fair, confusing, or frustrating.
+
+My first iteration on this made a chain of rooms that had the key for the door they needed in the same room, just in a random tile, there wasn't really a puzzle to that, as they could hypothetically just go room to room. When I added the tree grid branching, it gave it some complexity. It could now create scenarios where the player was stopped at one door and had to go to another room to get the key for that door. 
