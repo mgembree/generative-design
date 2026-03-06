@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Game Idea Mashup Generator</title>
+</head>
+<body>
+	<h1>Game Idea Mashup Generator</h1>
+
+	<label for="gamesInput">Games:</label>
+    <p>Hades, Disco Elysium, Slay the Spire, Hollow Knight, Stardew Valley, Celeste, Dead Cells, Into the Breach, Outer Wilds, Return of the Obra Dinn, Inscryption, Undertale, Spelunky 2, Risk of Rain 2, Darkest Dungeon, The Binding of Isaac, FTL: Faster Than Light, Noita, Vampire Survivors, RimWorld, Factorio, Terraria, Minecraft, Portal 2, Subnautica, Rogue Legacy 2, Hyper Light Drifter, Ori and the Blind Forest, Papers, Please, Katana ZERO, The Bazaar, Sid Mier's Civ, Dave the Diver, Balatro, Lethal Company, Ark Survival Evolved, Cyberpunk 2077, Red Dead Redemption 2, Satisfactory</p> 
+	<input id="gamesInput" type="text" size="80" value="Hades, Disco Elysium, Slay the Spire, Hollow Knight, Stardew Valley, Celeste, Dead Cells, Into the Breach, Outer Wilds, Return of the Obra Dinn, Inscryption, Undertale, Spelunky 2, Risk of Rain 2, Darkest Dungeon, The Binding of Isaac, FTL: Faster Than Light, Noita, Vampire Survivors, RimWorld, Factorio, Terraria, Minecraft, Portal 2, Subnautica, Rogue Legacy 2, Hyper Light Drifter, Ori and the Blind Forest, Papers, Please, Katana ZERO, The Bazaar, Sid Mier's Civ, Dave the Diver, Balatro, Lethal Company, Ark Survival Evolved, Cyberpunk 2077, Red Dead Redemption 2, Satisfactory" />
+	<button id="generateButton" type="button">Generate Mashup</button>
+
+	<hr />
+
+	<h2>Generated Idea</h2>
+	<p id="ideaOutput">This game has Hades's mechanics, Disco Elysium's narrative, and Slay the Spire's Item/Upgrade system.</p>
+
+	<script>
+		function pickRandomIndex(max) {
+			return Math.floor(Math.random() * max);
+		}
+
+		function parseGames(inputText) {
+			return inputText
+				.split(",")
+				.map(function (game) { return game.trim(); })
+				.filter(function (game) { return game.length > 0; });
+		}
+
+		function uniqueRandomThree(length) {
+			const first = pickRandomIndex(length);
+			let second = pickRandomIndex(length);
+			while (second === first) {
+				second = pickRandomIndex(length);
+			}
+			let third = pickRandomIndex(length);
+			while (third === first || third === second) {
+				third = pickRandomIndex(length);
+			}
+			return [first, second, third];
+		}
+
+		function possessive(name) {
+			if (name.endsWith("s") || name.endsWith("S")) {
+				return name + "'";
+			}
+			return name + "'s";
+		}
+
+		function generateMashupLine(games) {
+			if (games.length < 3) {
+				return "Please enter at least 3 games, separated by commas.";
+			}
+
+			const picks = uniqueRandomThree(games.length);
+			const mechanicsGame = games[picks[0]];
+			const narrativeGame = games[picks[1]];
+			const progressionGame = games[picks[2]];
+
+			return "This game has " +
+				possessive(mechanicsGame) + " mechanics, " +
+				possessive(narrativeGame) + " narrative, and " +
+				possessive(progressionGame) + " Item/Upgrade system";
+		}
+
+		document.getElementById("generateButton").addEventListener("click", function () {
+			const rawInput = document.getElementById("gamesInput").value;
+			const games = parseGames(rawInput);
+			document.getElementById("ideaOutput").textContent = generateMashupLine(games);
+		});
+	</script>
+</body>
+</html>

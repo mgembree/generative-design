@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ASCII Room Puzzle Generator</title>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+				color: #222;
+				background: #f5f5f5;
+			}
+
+			.page {
+				max-width: 960px;
+				margin: 0 auto;
+				padding: 24px 16px 32px;
+			}
+
+			header {
+				margin-bottom: 16px;
+			}
+
+			h1 {
+				margin: 0 0 8px;
+				font-size: 1.6rem;
+			}
+
+			.lede {
+				margin: 0;
+				color: #555;
+				max-width: 60ch;
+			}
+
+			.controls,
+			.rules,
+			.puzzle-card {
+				background: #fff;
+				border: 1px solid #ccc;
+				padding: 12px;
+				margin-bottom: 16px;
+			}
+
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 12px;
+			}
+
+			.control {
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+
+			.control-inline {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			input[type="range"],
+			input[type="number"],
+			input[type="text"] {
+				width: 100%;
+				padding: 6px 8px;
+				border: 1px solid #ccc;
+				font-family: "IBM Plex Mono", "Fira Mono", monospace;
+				font-size: 0.95rem;
+			}
+
+			button {
+				grid-column: 1 / -1;
+				padding: 8px 12px;
+				border: 1px solid #333;
+				background: #eee;
+				cursor: pointer;
+			}
+
+			.puzzle-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+				gap: 12px;
+			}
+
+			.puzzle-card {
+				gap: 10px;
+			}
+
+			.card-title {
+				font-weight: 600;
+			}
+
+			.ascii-map {
+				margin: 0;
+				padding: 8px;
+				border: 1px solid #ccc;
+				background: #f7f7f7;
+				font-family: "IBM Plex Mono", "Fira Mono", monospace;
+				font-size: 0.8rem;
+				line-height: 1.3;
+				white-space: pre;
+				overflow-x: auto;
+			}
+
+			.badge {
+				border: 1px solid #ccc;
+				padding: 2px 6px;
+				font-family: "IBM Plex Mono", "Fira Mono", monospace;
+			}
+
+			.hint,
+			.legend {
+				margin: 0;
+				font-size: 0.85rem;
+				color: #555;
+			}
+		</style>
+	</head>
+	<body>
+		<main class="page">
+			<header>
+				<h1>Tiny Gen: Puzzle Generator</h1>
+			</header>
+
+			<section class="controls">
+				<div class="control">
+					<label for="complexity">Complexity</label>
+					<div class="control-inline">
+						<input type="range" id="complexity" min="1" max="5" value="3" step="1">
+						<span id="complexityValue" class="badge">3</span>
+					</div>
+					<p class="hint">Higher values add more rooms and branching.</p>
+				</div>
+				<div class="control">
+					<label for="count">Puzzle count</label>
+					<input type="number" id="count" min="1" max="10" value="2">
+					<p class="hint">Set to 2 for more room per puzzle.</p>
+				</div>
+				<div class="control">
+					<label for="seed">Seed</label>
+					<input type="text" id="seed" placeholder="leave blank for random">
+				</div>
+				<button id="regen">Generate puzzles</button>
+			</section>
+
+			<section class="rules">
+				<h2>Legend and Rules</h2>
+				<ul>
+					<li>Tiles: # wall, . floor, P player start, E exit.</li>
+					<li>Doors are uppercase letters (A, B, C...).</li>
+					<li>Keys are lowercase letters (a, b, c...) and unlock matching doors.</li>
+				</ul>
+			</section>
+
+			<section id="puzzles" class="puzzle-grid"></section>
+		</main>
+
+		<script>
+			(() => {
+				const complexityInput = document.getElementById("complexity");
+				const complexityValue = document.getElementById("complexityValue");
+				const countInput = document.getElementById("count");
+				const seedInput = document.getElementById("seed");
+				const regenButton = document.getElementById("regen");
+				const puzzlesEl = document.getElementById("puzzles");
+
+				const doorAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+				const directions = [
+					{ dx: 1, dy: 0 },
+					{ dx: -1, dy: 0 },
+					{ dx: 0, dy: 1 },
+					{ dx: 0, dy: -1 }
+				];
+
+				const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+				function hashSeed(text) {
+					let hash = 2166136261;
+					for (let i = 0; i < text.length; i += 1) {
+						hash ^= text.charCodeAt(i);
+						hash = Math.imul(hash, 16777619);
+					}
+					return hash >>> 0;
+				}
+
+				function mulberry32(seed) {
+					let t = seed >>> 0;
+					return function () {
+						t += 0x6d2b79f5;
+						let r = Math.imul(t ^ (t >>> 15), 1 | t);
+						r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+						return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+					};
+				}
+
+				function createRng(seedText) {
+					const seed = hashSeed(seedText);
+					const random = mulberry32(seed);
+					return {
+						float() {
+							return random();
+						},
+						int(min, max) {
+							return Math.floor(random() * (max - min + 1)) + min;
+						},
+						chance(prob) {
+							return random() < prob;
+						},
+						pick(list) {
+							return list[this.int(0, list.length - 1)];
+						}
+					};
+				}
+
+				function shuffle(list, rng) {
+					const copy = list.slice();
+					for (let i = copy.length - 1; i > 0; i -= 1) {
+						const j = rng.int(0, i);
+						const temp = copy[i];
+						copy[i] = copy[j];
+						copy[j] = temp;
+					}
+					return copy;
+				}
+
+				function getConfig(complexity) {
+					const roomCount = 5 + complexity * 2;
+					const roomWidth = 11;
+					const roomHeight = 7;
+					const maxChildren = 2;
+					return {
+						roomCount,
+						roomWidth,
+						roomHeight,
+						maxChildren
+					};
+				}
+
+				function createGrid(height, width, fillChar) {
+					return Array.from({ length: height }, () => Array(width).fill(fillChar));
+				}
+
+				function drawRoom(grid, room, roomWidth, roomHeight) {
+					const x0 = room.pixelX;
+					const y0 = room.pixelY;
+					const xEnd = x0 + roomWidth - 1;
+					const yEnd = y0 + roomHeight - 1;
+					for (let x = x0; x <= xEnd; x += 1) {
+						grid[y0][x] = "#";
+						grid[yEnd][x] = "#";
+					}
+					for (let y = y0; y <= yEnd; y += 1) {
+						grid[y][x0] = "#";
+						grid[y][xEnd] = "#";
+					}
+					for (let y = y0 + 1; y <= yEnd - 1; y += 1) {
+						for (let x = x0 + 1; x <= xEnd - 1; x += 1) {
+							grid[y][x] = ".";
+						}
+					}
+				}
+
+				function placeToken(grid, room, token, rng, roomWidth, roomHeight) {
+					const minX = room.pixelX + 1;
+					const maxX = room.pixelX + roomWidth - 2;
+					const minY = room.pixelY + 1;
+					const maxY = room.pixelY + roomHeight - 2;
+					let attempts = 0;
+					while (attempts < 100) {
+						const x = rng.int(minX, maxX);
+						const y = rng.int(minY, maxY);
+						if (grid[y][x] === ".") {
+							grid[y][x] = token;
+							return { x, y };
+						}
+						attempts += 1;
+					}
+					for (let y = minY; y <= maxY; y += 1) {
+						for (let x = minX; x <= maxX; x += 1) {
+							if (grid[y][x] === ".") {
+								grid[y][x] = token;
+								return { x, y };
+							}
+						}
+					}
+					return null;
+				}
+
+				function buildLayout(config, rng) {
+					const rooms = [{ id: 0, x: 0, y: 0, parent: null, children: [], depth: 0 }];
+					const occupied = new Map();
+					const key = (x, y) => `${x},${y}`;
+					occupied.set(key(0, 0), 0);
+
+					function availableDirs(room) {
+						return directions.filter((dir) => !occupied.has(key(room.x + dir.dx, room.y + dir.dy)));
+					}
+
+					function addChild(parent, dir) {
+						const x = parent.x + dir.dx;
+						const y = parent.y + dir.dy;
+						const id = rooms.length;
+						const child = {
+							id,
+							x,
+							y,
+							parent: parent.id,
+							children: [],
+							depth: parent.depth + 1
+						};
+						rooms.push(child);
+						parent.children.push(id);
+						occupied.set(key(x, y), id);
+						return child;
+					}
+
+					if (config.roomCount >= 3) {
+						const root = rooms[0];
+						const picks = shuffle(directions, rng).slice(0, 2);
+						picks.forEach((dir) => addChild(root, dir));
+					}
+
+					while (rooms.length < config.roomCount) {
+						const candidates = rooms.filter(
+							(room) => room.children.length < config.maxChildren && availableDirs(room).length > 0
+						);
+						if (!candidates.length) {
+							break;
+						}
+						const parent = rng.pick(candidates);
+						const options = shuffle(availableDirs(parent), rng);
+						addChild(parent, options[0]);
+					}
+
+					return rooms;
+				}
+
+				function assignDoors(rooms, rng) {
+					const doors = [];
+					let doorIndex = 0;
+					rooms.forEach((room) => {
+						if (!room.children.length) {
+							return;
+						}
+						if (room.children.length === 1) {
+							const childId = room.children[0];
+							const doorChar = doorAlphabet[doorIndex];
+							doors.push({
+								door: doorChar,
+								key: doorChar.toLowerCase(),
+								from: room.id,
+								to: childId,
+								keyRoomId: room.id
+							});
+							doorIndex += 1;
+							return;
+						}
+						const children = room.children.slice();
+						const primary = children[rng.int(0, children.length - 1)];
+						const secondary = children.find((child) => child !== primary);
+						const primaryDoor = doorAlphabet[doorIndex];
+						doors.push({
+							door: primaryDoor,
+							key: primaryDoor.toLowerCase(),
+							from: room.id,
+							to: primary,
+							keyRoomId: room.id
+						});
+						doorIndex += 1;
+						const secondaryDoor = doorAlphabet[doorIndex];
+						doors.push({
+							door: secondaryDoor,
+							key: secondaryDoor.toLowerCase(),
+							from: room.id,
+							to: secondary,
+							keyRoomId: primary
+						});
+						doorIndex += 1;
+					});
+					return doors;
+				}
+
+				function applyRoomPositions(rooms, config) {
+					let minX = Infinity;
+					let maxX = -Infinity;
+					let minY = Infinity;
+					let maxY = -Infinity;
+					rooms.forEach((room) => {
+						minX = Math.min(minX, room.x);
+						maxX = Math.max(maxX, room.x);
+						minY = Math.min(minY, room.y);
+						maxY = Math.max(maxY, room.y);
+					});
+					const width = (maxX - minX) * (config.roomWidth - 1) + config.roomWidth;
+					const height = (maxY - minY) * (config.roomHeight - 1) + config.roomHeight;
+					rooms.forEach((room) => {
+						room.pixelX = (room.x - minX) * (config.roomWidth - 1);
+						room.pixelY = (room.y - minY) * (config.roomHeight - 1);
+					});
+					return { width, height };
+				}
+
+				function getDoorPosition(from, to, roomWidth, roomHeight) {
+					const dx = to.x - from.x;
+					const dy = to.y - from.y;
+					const midX = from.pixelX + Math.floor(roomWidth / 2);
+					const midY = from.pixelY + Math.floor(roomHeight / 2);
+					if (dx === 1) {
+						return { x: from.pixelX + roomWidth - 1, y: midY };
+					}
+					if (dx === -1) {
+						return { x: from.pixelX, y: midY };
+					}
+					if (dy === 1) {
+						return { x: midX, y: from.pixelY + roomHeight - 1 };
+					}
+					if (dy === -1) {
+						return { x: midX, y: from.pixelY };
+					}
+					return null;
+				}
+
+				function buildPuzzle(complexity, rng) {
+					const config = getConfig(complexity);
+					const rooms = buildLayout(config, rng);
+					const doors = assignDoors(rooms, rng);
+					const size = applyRoomPositions(rooms, config);
+					const grid = createGrid(size.height, size.width, " ");
+
+					rooms.forEach((room) => {
+						drawRoom(grid, room, config.roomWidth, config.roomHeight);
+					});
+
+					doors.forEach((door) => {
+						const from = rooms[door.from];
+						const to = rooms[door.to];
+						const pos = getDoorPosition(from, to, config.roomWidth, config.roomHeight);
+						if (pos) {
+							grid[pos.y][pos.x] = door.door;
+						}
+					});
+
+					const startRoom = rooms[0];
+					let exitRoom = rooms[0];
+					rooms.forEach((room) => {
+						if (room.depth > exitRoom.depth) {
+							exitRoom = room;
+						}
+					});
+
+					placeToken(grid, startRoom, "P", rng, config.roomWidth, config.roomHeight);
+					placeToken(grid, exitRoom, "E", rng, config.roomWidth, config.roomHeight);
+
+					doors.forEach((door) => {
+						const keyRoom = rooms[door.keyRoomId];
+						placeToken(grid, keyRoom, door.key, rng, config.roomWidth, config.roomHeight);
+					});
+
+					const map = grid.map((row) => row.join("")).join("\n");
+					const branchCount = rooms.filter((room) => room.children.length > 1).length;
+					return {
+						roomCount: rooms.length,
+						doorCount: doors.length,
+						branchCount,
+						map,
+						doors
+					};
+				}
+
+				function renderPuzzle(puzzle, index) {
+					const card = document.createElement("article");
+					card.className = "puzzle-card";
+
+					const title = document.createElement("div");
+					title.className = "card-title";
+					title.textContent = `Puzzle ${String(index + 1).padStart(2, "0")}`;
+
+					const map = document.createElement("pre");
+					map.className = "ascii-map";
+					map.textContent = puzzle.map;
+
+					const legend = document.createElement("div");
+					legend.className = "legend";
+					legend.textContent = "";
+
+					card.appendChild(title);
+					card.appendChild(map);
+					card.appendChild(legend);
+					return card;
+				}
+
+				function generate() {
+					const complexity = clamp(parseInt(complexityInput.value, 10) || 3, 1, 5);
+					const count = clamp(parseInt(countInput.value, 10) || 2, 1, 10);
+					let seed = seedInput.value.trim();
+					if (!seed) {
+						seed = `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+						seedInput.value = seed;
+					}
+
+					complexityInput.value = String(complexity);
+					complexityValue.textContent = String(complexity);
+					countInput.value = String(count);
+
+					const rng = createRng(seed);
+					puzzlesEl.innerHTML = "";
+
+					for (let i = 0; i < count; i += 1) {
+						const puzzle = buildPuzzle(complexity, rng);
+						puzzlesEl.appendChild(renderPuzzle(puzzle, i));
+					}
+				}
+
+				complexityInput.addEventListener("input", () => {
+					complexityValue.textContent = complexityInput.value;
+				});
+				regenButton.addEventListener("click", generate);
+
+				generate();
+			})();
+		</script>
+	</body>
+</html>
