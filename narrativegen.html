@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Granular Narrative Generator</title>
+		<style>
+			body {
+				font-family: "Palatino Linotype", "Book Antiqua", serif;
+				margin: 24px;
+				line-height: 1.4;
+			}
+
+			main {
+				max-width: 900px;
+			}
+
+			label {
+				display: block;
+				margin-top: 16px;
+				font-weight: 600;
+			}
+
+			input[type="range"] {
+				width: 100%;
+			}
+
+			button {
+				margin-top: 12px;
+			}
+
+			.unit {
+				margin: 12px 0;
+				padding-bottom: 8px;
+				border-bottom: 1px solid #ccc;
+			}
+
+			.meta {
+				font-size: 0.85rem;
+				color: #333;
+			}
+
+			.unit p {
+				margin: 6px 0;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1>Granular Narrative Generator</h1>
+			<p>
+				One parameter controls distribution and tone: conflict level. Higher
+				conflict pushes sharper lines and tenser moods.
+			</p>
+
+			<label for="conflict">
+				Conflict level: <span id="conflictValue">35</span>
+			</label>
+			<input id="conflict" type="range" min="0" max="100" value="35" />
+			<button id="generate">Generate batch</button>
+
+			<h2>Sample outputs</h2>
+			<p id="countLabel">12 units</p>
+			<div id="outputList" aria-live="polite"></div>
+		</main>
+
+		<script>
+			const batchCount = 12;
+
+			const archetypes = [
+				{
+					name: "canal courier",
+					register: "low",
+					tells: [
+						"keeps counting bridge steps",
+						"taps a damp map",
+						"glances toward the locks"
+					],
+					pasts: [
+						"lost a package in the flood",
+						"owes a favor to the lockmaster",
+						"ran a sealed letter through a riot"
+					]
+				},
+				{
+					name: "archive runner",
+					register: "high",
+					tells: [
+						"checks their pockets for tags",
+						"smooths a folded inventory slip",
+						"recites dates under their breath"
+					],
+					pasts: [
+						"memorized the west wing catalog",
+						"copied a map that no longer exists",
+						"misfiled a noble crest on purpose"
+					]
+				},
+				{
+					name: "alley medic",
+					register: "low",
+					tells: [
+						"tests the edge of a scalpel",
+						"counts breaths before speaking",
+						"sniffs the air for smoke"
+					],
+					pasts: [
+						"patched a rival gang leader",
+						"kept a patient hidden for a week",
+						"made a vow in a backroom chapel"
+					]
+				},
+				{
+					name: "glass cartographer",
+					register: "medium",
+					tells: [
+						"sketches a map on the table",
+						"turns their compass without looking",
+						"eyes the floor like it is a grid"
+					],
+					pasts: [
+						"charted a street that vanished overnight",
+						"carried a map of the sealed quarter",
+						"traded a route for a name"
+					]
+				},
+				{
+					name: "market hawker",
+					register: "low",
+					tells: [
+						"flicks a bell to get attention",
+						"counts coins twice",
+						"smiles without the eyes"
+					],
+					pasts: [
+						"sold a fake to the guild",
+						"owes rent to a quiet landlord",
+						"kept a stolen crate for a year"
+					]
+				},
+				{
+					name: "temple novice",
+					register: "high",
+					tells: [
+						"touches a prayer cord",
+						"bows before speaking",
+						"keeps their voice low"
+					],
+					pasts: [
+						"heard a confession that shook them",
+						"hid a relic from the wardens",
+						"swore silence before the bells"
+					]
+				}
+			];
+
+			const places = [
+				"fog wharf",
+				"cinder market",
+				"rail chapel",
+				"salt vault",
+				"clockyard",
+				"amber arcade"
+			];
+
+			const items = [
+				"sealed tin",
+				"brass ring",
+				"cold lantern",
+				"torn ledger",
+				"rail token",
+				"broken charm"
+			];
+
+			const names = ["Ira", "Joss", "Mara", "Tavin", "Hale", "Nysa"];
+
+			const contacts = [
+				"dockmaster",
+				"bell warden",
+				"forge clerk",
+				"ledger scribe",
+				"night ferryman",
+				"gate runner"
+			];
+
+			const intentLines = {
+				help: {
+					soft: [
+						"I can show you a side door by the {place}",
+						"Take this {item} and keep left at the {place}",
+						"Ask for {name} and say the tide is low"
+					],
+					sharp: [
+						"If you want out, follow me and keep quiet",
+						"You did not hear this, but the {contact} owes me",
+						"Move now or do not move at all"
+					]
+				},
+				misdirect: {
+					soft: [
+						"Nobody meets at the {place} anymore",
+						"You want the {contact}, not the {place}",
+						"The {item} you seek was sold at dawn"
+					],
+					sharp: [
+						"Wrong alley. Walk away",
+						"You are late, and they already left",
+						"Keep asking and you will draw teeth"
+					]
+				},
+				bargain: {
+					soft: [
+						"Two coins and I look the other way",
+						"Bring the {item} and I bring the name",
+						"Half now, half when the bells stop"
+					],
+					sharp: [
+						"Pay or walk",
+						"My price just rose",
+						"No coin, no door"
+					]
+				},
+				warn: {
+					soft: [
+						"You are being watched from the {place}",
+						"The {contact} is in a bad mood tonight",
+						"Keep your voice down if you want to keep it"
+					],
+					sharp: [
+						"They already marked you",
+						"Do not touch that {item}",
+						"Leave before the bells find you"
+					]
+				},
+				confess: {
+					soft: [
+						"I moved the crate before the raid",
+						"I told them you were dead",
+						"I kept the {item} when I should not have"
+					],
+					sharp: [
+						"Fine, it was me",
+						"I lied. There is no back door",
+						"I burned the note, end of story"
+					]
+				},
+				impress: {
+					soft: [
+						"I walked the glass ward without a guide",
+						"I can read the bells in the wind",
+						"I mapped the {place} in one night"
+					],
+					sharp: [
+						"I do not miss",
+						"I can open any gate",
+						"I know who hired you"
+					]
+				}
+			};
+
+			const rumorLines = [
+				"Rumor: {name} hid a {item} in the {place}",
+				"Rumor: the {contact} is trading names for blue ash",
+				"Rumor: a second gate opened near the {place}"
+			];
+
+			const hookLines = [
+				"Hook: deliver a sealed note to the {contact} before dusk",
+				"Hook: retrieve the {item} from the {place} without tripping bells",
+				"Hook: escort {name} through the {place} at tide change"
+			];
+
+			const backgroundFacts = [
+				"Fact: the {archetype} keeps a spare key under a floor tile",
+				"Fact: the {archetype} once refused a bribe from the {contact}",
+				"Fact: the {archetype} has a scar from the {place}"
+			];
+
+			const microBeats = [
+				"The {archetype} slides a {item} across the table",
+				"The {archetype} checks the door before speaking",
+				"The {archetype} lowers their voice and leans in"
+			];
+
+			const exchangePairs = {
+				allies: {
+					soft: [
+						[
+							"A: We still on for the {place}?",
+							"B: Yes, but keep the {item} out of sight."
+						]
+					],
+					sharp: [
+						[
+							"A: You promised.",
+							"B: And you were late."
+						]
+					]
+				},
+				rivals: {
+					soft: [
+						[
+							"A: Still chasing my trail?",
+							"B: Only because you leave it so bright."
+						]
+					],
+					sharp: [
+						[
+							"A: Back off.",
+							"B: Make me."
+						]
+					]
+				},
+				"client-merchant": {
+					soft: [
+						[
+							"A: That the best price?",
+							"B: For you, it is the only price."
+						]
+					],
+					sharp: [
+						[
+							"A: That is too high.",
+							"B: Then walk."
+						]
+					]
+				},
+				"superior-subordinate": {
+					soft: [
+						[
+							"A: Report.",
+							"B: The {place} is clear for now."
+						]
+					],
+					sharp: [
+						[
+							"A: You missed a signal.",
+							"B: It was not there."
+						]
+					]
+				},
+				strangers: {
+					soft: [
+						[
+							"A: Do you know the {place}?",
+							"B: Only by rumor."
+						]
+					],
+					sharp: [
+						[
+							"A: You lost?",
+							"B: None of your concern."
+						]
+					]
+				}
+			};
+
+			const greetings = {
+				warm: {
+					low: ["Hey", "Ah, there", "Look at you"],
+					medium: ["Hello", "Good to see you", "Well met"],
+					high: ["Good day", "I hope you are well", "My thanks"]
+				},
+				neutral: {
+					low: ["Yeah", "Listen", "So"],
+					medium: ["All right", "Look", "Understood"],
+					high: ["Greetings", "If you please", "A moment"]
+				},
+				tense: {
+					low: ["What do you want", "Careful", "Hold it"],
+					medium: ["Be quick", "Do not linger", "State it"],
+					high: ["State your business", "Be brief", "Explain yourself"]
+				}
+			};
+
+			const relationshipFlavor = {
+				strangers: ["We just met", "We do not know each other"],
+				allies: ["We are on the same side", "We both want this quiet"],
+				rivals: ["We both know the score", "We are not friends"],
+				"superior-subordinate": ["Orders stand", "Your shift is over"],
+				"client-merchant": ["You want the goods", "My price stands"]
+			};
+
+			const ui = {
+				conflict: document.getElementById("conflict"),
+				conflictValue: document.getElementById("conflictValue"),
+				outputList: document.getElementById("outputList"),
+				countLabel: document.getElementById("countLabel"),
+				generate: document.getElementById("generate")
+			};
+
+			function clamp(value, min, max) {
+				return Math.min(max, Math.max(min, value));
+			}
+
+			function pick(list) {
+				return list[Math.floor(Math.random() * list.length)];
+			}
+
+			function weightedPick(items) {
+				const total = items.reduce((sum, item) => sum + item.weight, 0);
+				let roll = Math.random() * total;
+				for (const item of items) {
+					roll -= item.weight;
+					if (roll <= 0) {
+						return item.value;
+					}
+				}
+				return items[items.length - 1].value;
+			}
+
+			function fillTemplate(template, data) {
+				return template.replace(/\{(\w+)\}/g, (match, key) => {
+					if (Array.isArray(data[key])) {
+						return pick(data[key]);
+					}
+					return data[key] || match;
+				});
+			}
+
+			function resolveMood(conflict) {
+				const tenseWeight = clamp(0.2 + conflict * 0.6, 0.2, 0.7);
+				const warmWeight = clamp(0.4 - conflict * 0.25, 0.1, 0.5);
+				const neutralWeight = 1 - tenseWeight - warmWeight;
+				return weightedPick([
+					{ value: "warm", weight: warmWeight },
+					{ value: "neutral", weight: neutralWeight },
+					{ value: "tense", weight: tenseWeight }
+				]);
+			}
+
+			function pickType(intent, conflict) {
+				const weights = [
+					{ value: "dialogue", weight: 3 },
+					{ value: "micro-beat", weight: 2 },
+					{ value: "background", weight: 1.4 },
+					{ value: "rumor", weight: 1.3 },
+					{ value: "hook", weight: 1.3 },
+					{ value: "exchange", weight: 1 }
+				];
+
+				if (intent === "warn") {
+					weights.find((item) => item.value === "rumor").weight += 0.6;
+					weights.find((item) => item.value === "hook").weight += 0.4;
+				}
+
+				if (intent === "bargain") {
+					weights.find((item) => item.value === "exchange").weight += 0.6;
+					weights.find((item) => item.value === "dialogue").weight += 0.4;
+				}
+
+				if (intent === "confess") {
+					weights.find((item) => item.value === "background").weight += 0.6;
+				}
+
+				if (conflict > 0.6) {
+					weights.find((item) => item.value === "dialogue").weight += 0.5;
+					weights.find((item) => item.value === "exchange").weight += 0.4;
+				}
+
+				return weightedPick(weights);
+			}
+
+			function buildGreeting(mood, formality) {
+				const moodSet = greetings[mood];
+				const resolved = moodSet[formality] || moodSet.medium;
+				return pick(resolved);
+			}
+
+			function needsPeriod(line) {
+				return !/[.!?]$/.test(line.trim());
+			}
+
+			function buildDialogue(params) {
+				const edgeChance = clamp(
+					0.15 + params.conflict * 0.7 + (params.mood === "tense" ? 0.1 : 0),
+					0.1,
+					0.9
+				);
+				const isEdgy = Math.random() < edgeChance;
+				const templates = intentLines[params.intent][isEdgy ? "sharp" : "soft"];
+
+				const greeting = buildGreeting(params.mood, params.formality);
+				const body = fillTemplate(pick(templates), params.tokens);
+				const relationTag = pick(relationshipFlavor[params.relationship]);
+				const line = `${greeting}. ${body}. ${relationTag}.`;
+
+				return { lines: [line] };
+			}
+
+			function buildMicroBeat(params) {
+				const base = pick(microBeats);
+				const teller = pick(params.archetype.tells);
+				const line = `${fillTemplate(base, params.tokens)}, and ${teller}.`;
+				return { lines: [line] };
+			}
+
+			function buildBackground(params) {
+				const local = pick(params.archetype.pasts);
+				const base = pick(backgroundFacts);
+				const line = `${fillTemplate(base, params.tokens)} They ${local}.`;
+				return { lines: [line] };
+			}
+
+			function buildRumor(params) {
+				const base = pick(rumorLines);
+				const line = fillTemplate(base, params.tokens) + ".";
+				return { lines: [line] };
+			}
+
+			function buildHook(params) {
+				const base = pick(hookLines);
+				const line = fillTemplate(base, params.tokens) + ".";
+				return { lines: [line] };
+			}
+
+			function buildExchange(params) {
+				const edgeChance = clamp(0.2 + params.conflict * 0.6, 0.1, 0.9);
+				const isEdgy = Math.random() < edgeChance;
+				const set = exchangePairs[params.relationship] || exchangePairs.strangers;
+				const pair = pick(isEdgy ? set.sharp : set.soft);
+				return { lines: pair.map((line) => fillTemplate(line, params.tokens)) };
+			}
+
+			function generateUnit(conflictValue) {
+				const conflict = conflictValue / 100;
+				const archetype = pick(archetypes);
+				const mood = resolveMood(conflict);
+				const relationships = [
+					"strangers",
+					"allies",
+					"rivals",
+					"superior-subordinate",
+					"client-merchant"
+				];
+				const intents = [
+					"help",
+					"misdirect",
+					"bargain",
+					"warn",
+					"confess",
+					"impress"
+				];
+				const relationship = pick(relationships);
+				const intent = pick(intents);
+				const formality = archetype.register;
+				const type = pickType(intent, conflict);
+
+				const tokens = {
+					archetype: archetype.name,
+					place: places,
+					item: items,
+					name: names,
+					contact: contacts
+				};
+
+				const params = {
+					archetype,
+					mood,
+					relationship,
+					intent,
+					formality,
+					conflict,
+					tokens
+				};
+
+				let unit;
+				if (type === "dialogue") {
+					unit = buildDialogue(params);
+				} else if (type === "micro-beat") {
+					unit = buildMicroBeat(params);
+				} else if (type === "background") {
+					unit = buildBackground(params);
+				} else if (type === "rumor") {
+					unit = buildRumor(params);
+				} else if (type === "hook") {
+					unit = buildHook(params);
+				} else {
+					unit = buildExchange(params);
+				}
+
+				return {
+					type,
+					archetype: archetype.name,
+					mood,
+					relationship,
+					intent,
+					formality,
+					conflict: Math.round(conflict * 100),
+					lines: unit.lines
+				};
+			}
+
+			function renderUnits(units) {
+				ui.outputList.innerHTML = "";
+				units.forEach((unit) => {
+					const card = document.createElement("div");
+					card.className = "unit";
+
+					const meta = document.createElement("div");
+					meta.className = "meta";
+					meta.textContent =
+						`type: ${unit.type} | archetype: ${unit.archetype} | ` +
+						`mood: ${unit.mood} | intent: ${unit.intent} | ` +
+						`relationship: ${unit.relationship} | conflict: ${unit.conflict}`;
+
+					card.appendChild(meta);
+					unit.lines.forEach((line) => {
+						const p = document.createElement("p");
+						let finalLine = line.trim();
+						if (needsPeriod(finalLine)) {
+							finalLine += ".";
+						}
+						p.textContent = finalLine;
+						card.appendChild(p);
+					});
+
+					ui.outputList.appendChild(card);
+				});
+			}
+
+			function generateBatch() {
+				const conflictValue = Number(ui.conflict.value) || 0;
+				const units = Array.from({ length: batchCount }, () =>
+					generateUnit(conflictValue)
+				);
+				ui.countLabel.textContent = `${batchCount} units`;
+				renderUnits(units);
+			}
+
+			ui.conflict.addEventListener("input", () => {
+				ui.conflictValue.textContent = ui.conflict.value;
+			});
+
+			ui.generate.addEventListener("click", generateBatch);
+
+			generateBatch();
+		</script>
+	</body>
+</html>
